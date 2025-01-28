@@ -1,20 +1,20 @@
 <template>
   <li
     v-if="user"
-    class="suggest-dropdown-list__user"
-    :class="{ 'suggest-dropdown-list__user_active': isActive }"
+    class="suggest-dropdown-list-user"
+    :class="{ 'suggest-dropdown-list-user--active': isActive }"
     role="option"
     :aria-selected="isActive"
     @click="handleClick"
   >
     <div class="user">
-      <div class="user__avatar">
+      <div class="user-avatar">
         <img v-if="user.avatar" :src="user.avatar" alt="avatar" />
         <img v-else src="@/public/no-user-avatar.png" alt="no-avatar" />
       </div>
-      <div class="user__info">
-        <div class="user__name">{{ user.name ? user.name : `@${user.alias}` }}</div>
-        <div class="user__alias">@{{ user.alias }}</div>
+      <div class="user-info">
+        <div class="user-name">{{ user.name ? user.name : `@${user.alias}` }}</div>
+        <div class="user-alias">@{{ user.alias }}</div>
       </div>
     </div>
   </li>
@@ -24,7 +24,7 @@
 import type { UserType } from '@/types/types.ts'
 interface UserProps {
   user: UserType | null
-  isActive: boolean
+  isActive?: boolean
 }
 
 const props = withDefaults(defineProps<UserProps>(), {
@@ -44,7 +44,7 @@ const handleClick = () => {
 </script>
 
 <style scoped>
-.suggest-dropdown-list__user {
+.suggest-dropdown-list-user {
   .user {
     display: flex;
     gap: 10px;
@@ -52,7 +52,7 @@ const handleClick = () => {
     padding: 15px 10px;
     border-radius: 5px;
 
-    .user__avatar {
+    .user-avatar {
       width: 30px;
       height: 30px;
       img {
@@ -62,14 +62,14 @@ const handleClick = () => {
       }
     }
 
-    .user__info {
+    .user-info {
       word-break: break-all;
-      .user__name {
+      .user-name {
         font-size: 14px;
         font-weight: 500;
       }
 
-      .user__alias {
+      .user-alias {
         font-size: 14px;
         color: grey;
       }
@@ -85,7 +85,7 @@ const handleClick = () => {
   }
 }
 
-.suggest-dropdown-list__user_active {
+.suggest-dropdown-list-user--active {
   background-color: #f0f0f0;
   color: #000;
 }

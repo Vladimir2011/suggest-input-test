@@ -1,16 +1,17 @@
 <template>
-  <div v-if="instance" class="suggest-input">
-    <label class="suggest-input__label" :for="String(instance.uid)"
-      ><span class="suggest-input-label_required" v-if="label">*</span>{{ label }}</label
+  <div v-if="instance" class="input-wrapper">
+    <label class="label" :for="String(instance.uid)"
+      ><span class="label-required" v-if="label">*</span>{{ label }}</label
     >
-    <div v-if="localErrorValue" class="suggest-input__error">{{ localErrorValue }}</div>
-    <div class="suggest-input__container">
+    <div v-if="localErrorValue" class="error">{{ localErrorValue }}</div>
+    <div class="input-container">
       <input
         :id="String(instance.uid)"
         type="text"
-        v-model="inputValue"
-        class="suggest-input__input"
-        :class="{ 'suggest-input__input_error': localErrorValue }"
+        :value="modelValue"
+        @input="updateInputValue"
+        class="input"
+        :class="{ 'input-error': localErrorValue }"
         :placeholder="placeholder"
         :disabled="isDisabled"
         :style="{ paddingLeft: paddingLeftForInput }"
@@ -35,6 +36,7 @@ interface SuggestInputProps {
   error: string | null
   tags: (UserType | CompanyType)[]
   isDisabled: boolean
+  modelValue: string
 }
 
 const props = withDefaults(defineProps<SuggestInputProps>(), {
@@ -43,10 +45,12 @@ const props = withDefaults(defineProps<SuggestInputProps>(), {
   error: null,
   tags: () => [],
   isDisabled: false,
+  modelValue: '',
 })
 
 const emit = defineEmits<{
   (e: 'remove-tag', tag: UserType | CompanyType): void
+  (e: 'update:modelValue', value: string): void
 }>()
 
 const handleRemoveTag = (tag: UserType | CompanyType) => {
@@ -59,6 +63,11 @@ const inputValue = defineModel()
 const tagsList = useTemplateRef<HTMLElement | null>('tags')
 const paddingLeftForInput = ref<string>('10px')
 const { width: windowWidth } = useWindowSize()
+
+const updateInputValue = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  emit('update:modelValue', target.value)
+}
 
 watch(
   () => props.error,
@@ -86,12 +95,12 @@ watch(windowWidth, () => {
 </script>
 
 <style scoped>
-.suggest-input {
+.input-wrapper {
   display: flex;
   flex-direction: column;
   gap: 8px;
 
-  .suggest-input__error {
+  .error {
     width: fit-content;
     padding: 5px;
     font-size: 12px;
@@ -100,23 +109,23 @@ watch(windowWidth, () => {
     color: white;
   }
 
-  .suggest-input__label {
+  .label {
     display: flex;
     gap: 4px;
     font-size: 14px;
     font-weight: 600;
     color: rgba(0, 0, 0, 0.87);
 
-    .suggest-input-label_required {
+    .label-required {
       color: red;
     }
   }
 
-  .suggest-input__container {
+  .input-container {
     display: flex;
     align-items: center;
     position: relative;
-    .suggest-input__input {
+    .input {
       flex: 1;
       width: 100%;
       min-height: 40px;
@@ -144,7 +153,7 @@ watch(windowWidth, () => {
       }
     }
 
-    .suggest-input__input_error {
+    .input-error {
       border: 1px solid red;
 
       &:focus {

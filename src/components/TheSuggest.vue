@@ -1,7 +1,8 @@
 <template>
   <div class="suggest">
     <SuggestInput
-      v-model="inputValue"
+      :modelValue="modelValue"
+      @update:modelValue="handleInput"
       :label
       :placeholder="'Введите логин'"
       @input="loadSuggestions"
@@ -17,7 +18,20 @@
       @selectUser="handleSelectUser"
       @selectCompany="handleSelectCompany"
       @close-dropdown="handleDropdownClose"
-    />
+    >
+      <CompanyItem
+        v-for="company in companiesList"
+        :key="company.alias"
+        :company="company"
+        @select-company="handleSelectCompany"
+      />
+      <UserItem
+        v-for="user in usersList"
+        :key="user.alias"
+        :user="user"
+        @select-user="handleSelectUser"
+      />
+    </SuggestDropdown>
   </div>
 </template>
 
@@ -26,9 +40,11 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import type { UserType, CompanyType } from '@/types/types'
 import SuggestInput from '@/components/SuggestInput.vue'
 import SuggestDropdown from '@/components/SuggestDropdown.vue'
+import UserItem from '@/components/UserItem.vue'
+import CompanyItem from '@/components/CompanyItem.vue'
 
 let debounceTimeout: ReturnType<typeof setTimeout> | null = null
-const inputValue = ref('')
+let abortController: AbortController | null = null
 const suggestionList = ref<(UserType | CompanyType)[] | null>(null)
 const isLoading = ref<boolean>(false)
 const error = ref<string | null>(null)
@@ -38,29 +54,43 @@ interface SuggestProps {
   url?: string
   limitOfTags?: number
   label?: string
+  modelValue: string
 }
 
 const props = withDefaults(defineProps<SuggestProps>(), {
   url: 'https://habr.com/kek/v2/publication/suggest-mention',
   limitOfTags: 1,
   label: 'Пользователь или компания',
+  modelValue: '',
 })
+
+const emits = defineEmits<{
+  (e: 'update:modelValue', value: string): void
+}>()
 
 const loadSuggestions = () => {
   suggestionList.value = null
   error.value = null
   clearTimeout(debounceTimeout!)
 
+  // Отменяем предыдущий запрос, если он существует
+  if (abortController) {
+    abortController.abort()
+  }
+
+  // Создаем новый AbortController для текущего запроса
+  abortController = new AbortController()
+
   debounceTimeout = setTimeout(async () => {
-    if (inputValue.value.length > 2) {
+    if (props.modelValue.length > 2) {
       isLoading.value = true
       try {
         // Симулируем 500 ошибку
-        if (inputValue.value === 'simulate500') {
+        if (props.modelValue === 'simulate500') {
           throw new Error('500: Internal Server Error')
         }
 
-        const response = await fetch(`${props.url}?q=${inputValue.value}`)
+        const response = await fetch(`${props.url}?q=${props.modelValue}`)
 
         if (!response.ok) {
           if (response.status === 400) {
@@ -90,6 +120,18 @@ const isInputDisabled = computed(() => {
   return tags.value.length >= props.limitOfTags
 })
 
+const handleInput = (value: string) => {
+  emits('update:modelValue', value)
+}
+
+const companiesList = computed(() => {
+  return suggestionList.value ? suggestionList.value.filter((item) => item.type === 'company') : []
+})
+
+const usersList = computed(() => {
+  return suggestionList.value ? suggestionList.value.filter((item) => item.type === 'user') : []
+})
+
 const checkIfAnObjectInAnArray = (obj: UserType | CompanyType, arr: (UserType | CompanyType)[]) => {
   return arr.some((item) => {
     if (item.type === obj.type) {
@@ -108,7 +150,7 @@ const handleSelectUser = (user: UserType) => {
   } else {
     error.value = 'Превышен лимит добавленных пользователей/компаний'
     suggestionList.value = null
-    inputValue.value = ''
+    emits('update:modelValue', '')
   }
 }
 
@@ -122,7 +164,7 @@ const handleSelectCompany = (company: CompanyType) => {
   } else {
     error.value = 'Превышен лимит добавленных пользователей/компаний'
     suggestionList.value = null
-    inputValue.value = ''
+    emits('update:modelValue', '')
   }
 }
 
@@ -148,15 +190,18 @@ watch(error, () => {
   return () => clearTimeout(timeoutId)
 })
 
-watch(inputValue, () => {
-  if (inputValue.value && inputValue.value.length < 3) {
-    suggestionList.value = null
-  }
-})
+watch(
+  () => props.modelValue,
+  () => {
+    if (props.modelValue && props.modelValue.length < 3) {
+      suggestionList.value = null
+    }
+  },
+)
 
 watch(isInputDisabled, () => {
-  if (inputValue.value) {
-    inputValue.value = ''
+  if (props.modelValue) {
+    emits('update:modelValue', '')
   }
 })
 </script>
